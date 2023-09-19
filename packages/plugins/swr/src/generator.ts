@@ -106,7 +106,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     // findMany
     if (mapping.findMany) {
         const argsType = `Prisma.${model.name}FindManyArgs`;
-        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        // "findMany" has extra "meta" field for fetching total count
+        const inputType = `Prisma.SelectSubset<T, ${argsType} & { meta?: { count?: true } }>`;
         const returnType = `Array<Prisma.${model.name}GetPayload<T>>`;
 
         // regular findMany

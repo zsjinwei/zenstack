@@ -68,7 +68,13 @@ function generateQueryHook(
     const capOperation = upperCaseFirst(operation);
 
     const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
-    const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+
+    // "findMany" has extra "meta" field for fetching total count
+    const inputType =
+        operation === 'findMany'
+            ? `Prisma.SelectSubset<T, ${argsType} & { meta?: { count?: true } }>`
+            : `Prisma.SelectSubset<T, ${argsType}>`;
+
     const returnType =
         overrideReturnType ?? (returnArray ? `Array<Prisma.${model}GetPayload<T>>` : `Prisma.${model}GetPayload<T>`);
     const optionsType = makeQueryOptions(target, returnType, infinite);

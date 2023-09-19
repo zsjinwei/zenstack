@@ -54,6 +54,7 @@ class RequestHandler extends APIHandlerBase {
         const dbOp = op as keyof DbOperations;
         let args: unknown;
         let resCode = 200;
+        let queryMeta: any;
 
         switch (dbOp) {
             case 'create':
@@ -87,6 +88,14 @@ class RequestHandler extends APIHandlerBase {
                         body: this.makeError('invalid request method, only GET is supported'),
                     };
                 }
+                queryMeta = query?.meta ? JSON.parse(query.meta as string) : undefined;
+                if (queryMeta?.count && dbOp !== 'findMany') {
+                    return {
+                        status: 400,
+                        body: this.makeError('"count" meta is only supported for "findMany" operation'),
+                    };
+                }
+
                 try {
                     args = query?.q ? this.unmarshalQ(query.q as string, query.meta as string | undefined) : {};
                 } catch {
@@ -138,7 +147,15 @@ class RequestHandler extends APIHandlerBase {
                 return { status: 400, body: this.makeError(`unknown model name: ${model}`) };
             }
 
-            const result = await prisma[model][dbOp](parsedArgs);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let result: any;
+            let count: number | undefined;
+
+            if (queryMeta?.count === true) {
+                [result, count] = await Promise.all([prisma[model][dbOp](parsedArgs), prisma[model].count()]);
+            } else {
+                result = await prisma[model][dbOp](parsedArgs);
+            }
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let response: any = { data: result };
@@ -149,6 +166,9 @@ class RequestHandler extends APIHandlerBase {
                 response = { data: json };
                 if (meta) {
                     response.meta = { serialization: meta };
+                }
+                if (count !== undefined) {
+                    response.meta = { ...response.meta, count };
                 }
             }
 
@@ -221,7 +241,7 @@ class RequestHandler extends APIHandlerBase {
             // superjson deserialization
             args = SuperJSON.deserialize({ json: rest, meta: meta.serialization });
         }
-        return this.zodValidate(zodSchemas, model, dbOp as keyof DbOperations, args);
+        return { meta, ...this.zodValidate(zodSchemas, model, dbOp as keyof DbOperations, args) };
     }
 
     private getZodSchema(zodSchemas: ZodSchemas, model: string, operation: keyof DbOperations) {

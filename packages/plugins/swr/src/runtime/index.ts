@@ -276,12 +276,16 @@ export async function fetcher<R, C extends boolean>(
 }
 
 function marshal(value: unknown) {
-    const { data, meta } = serialize(value);
-    if (meta) {
-        return JSON.stringify({ ...(data as any), meta: { serialization: meta } });
-    } else {
-        return JSON.stringify(data);
+    const { meta: metaInPayload, ...payload } = value as any;
+    const { data, meta: serializationMeta } = serialize(payload);
+
+    let meta: any;
+    if (metaInPayload || serializationMeta) {
+        // merge meta in payload with serialization meta
+        meta = { ...metaInPayload, serialization: serializationMeta };
     }
+
+    return JSON.stringify({ ...(data as any), meta });
 }
 
 function unmarshal(value: string) {
@@ -299,10 +303,18 @@ function makeUrl(url: string, args: unknown) {
         return url;
     }
 
-    const { data, meta } = serialize(args);
+    const { meta: metaInArgs, ...restArgs } = args as any;
+    const { data, meta: serializationMeta } = serialize(restArgs);
+
+    let meta: any;
+    if (metaInArgs || serializationMeta) {
+        // merge meta in payload with serialization meta
+        meta = { ...metaInArgs, serialization: serializationMeta };
+    }
+
     let result = `${url}?q=${encodeURIComponent(JSON.stringify(data))}`;
     if (meta) {
-        result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
+        result += `&meta=${encodeURIComponent(JSON.stringify(meta))}`;
     }
     return result;
 }

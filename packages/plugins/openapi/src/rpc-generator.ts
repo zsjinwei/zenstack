@@ -152,7 +152,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             select: this.ref(`${modelName}Select`),
                             include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
                             data: this.ref(`${modelName}CreateInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -175,7 +175,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         required: ['data'],
                         properties: {
                             data: this.ref(`${modelName}CreateManyInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -200,7 +200,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             select: this.ref(`${modelName}Select`),
                             include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
                             where: this.ref(`${modelName}WhereUniqueInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -223,7 +223,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             select: this.ref(`${modelName}Select`),
                             include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
                             where: this.ref(`${modelName}WhereInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -246,7 +246,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             select: this.ref(`${modelName}Select`),
                             include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
                             where: this.ref(`${modelName}WhereInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMetaWithCount'),
                         },
                     },
                     components
@@ -271,7 +271,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
                             where: this.ref(`${modelName}WhereUniqueInput`),
                             data: this.ref(`${modelName}UpdateInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -294,7 +294,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         properties: {
                             where: this.ref(`${modelName}WhereInput`),
                             data: this.ref(`${modelName}UpdateManyMutationInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -320,7 +320,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             where: this.ref(`${modelName}WhereUniqueInput`),
                             create: this.ref(`${modelName}CreateInput`),
                             update: this.ref(`${modelName}UpdateInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -344,7 +344,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             select: this.ref(`${modelName}Select`),
                             include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
                             where: this.ref(`${modelName}WhereUniqueInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -365,7 +365,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         properties: {
                             where: this.ref(`${modelName}WhereInput`),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -387,7 +387,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     properties: {
                         select: this.ref(`${modelName}Select`),
                         where: this.ref(`${modelName}WhereInput`),
-                        meta: this.ref('_Meta'),
+                        meta: this.ref('_RequestMeta'),
                     },
                 },
                 components
@@ -421,7 +421,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             take: { type: 'integer' },
                             skip: { type: 'integer' },
                             ...this.aggregateFields(model),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -448,7 +448,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             take: { type: 'integer' },
                             skip: { type: 'integer' },
                             ...this.aggregateFields(model),
-                            meta: this.ref('_Meta'),
+                            meta: this.ref('_RequestMeta'),
                         },
                     },
                     components
@@ -617,20 +617,51 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             schemas[upperCaseFirst(output.name)] = this.generateOutputComponent(output);
         }
 
-        schemas['_Meta'] = {
+        schemas['_RequestMeta'] = {
             type: 'object',
+            description: 'Meta information about a request',
             properties: {
-                meta: {
+                serialization: {
                     type: 'object',
-                    description: 'Meta information about the request or response',
+                    description: 'Serialization metadata',
+                },
+            },
+            additionalProperties: true,
+        };
+
+        schemas['_RequestMetaWithCount'] = {
+            allOf: [
+                { $ref: '#/components/schemas/_RequestMeta' },
+                {
+                    type: 'object',
+                    description: 'Meta information about a request',
                     properties: {
-                        serialization: {
-                            description: 'Serialization metadata',
+                        count: {
+                            type: 'boolean',
+                            default: false,
+                            description: 'Indicates if the response should include total count of records',
                         },
                     },
                     additionalProperties: true,
                 },
-            },
+            ],
+        };
+
+        schemas['_ResponseMeta'] = {
+            allOf: [
+                { $ref: '#/components/schemas/_RequestMeta' },
+                {
+                    type: 'object',
+                    description: 'Meta information about a response',
+                    properties: {
+                        count: {
+                            type: 'number',
+                            description: 'Total count of records',
+                        },
+                    },
+                    additionalProperties: true,
+                },
+            ],
         };
 
         schemas['_Error'] = {
@@ -824,7 +855,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             required: ['data'],
             properties: {
                 data: { ...schema, description: 'The Prisma response data serialized with superjson' },
-                meta: this.ref('_Meta', true, 'The superjson serialization metadata for the "data" field'),
+                meta: this.ref('_ResponseMeta', true, 'The superjson serialization metadata for the "data" field'),
             },
         };
     }
