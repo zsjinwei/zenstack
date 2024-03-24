@@ -14,6 +14,7 @@ import {
     isFunctionDecl,
     isInvocationExpr,
     isMemberAccessExpr,
+    isStringLiteral,
 } from '@zenstackhq/language/ast';
 import { ZModelCodeGenerator, getAttribute, isEnumFieldReference, isFromStdlib } from '@zenstackhq/sdk';
 import {
@@ -83,14 +84,16 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
             const hint = hintAttr.args[0];
             if (hint?.value) {
                 if (isArrayExpr(hint.value)) {
-                    return hint.value.items.map((item) => {
-                        return {
-                            label: `${(item as StringLiteral).value}`,
-                            kind: CompletionItemKind.Value,
-                            detail: 'Parameter',
-                            sortText: '0',
-                        };
-                    });
+                    return hint.value.items
+                        .filter((item): item is StringLiteral => isStringLiteral(item))
+                        .map((item) => {
+                            return {
+                                label: `${item.value}`,
+                                kind: CompletionItemKind.Value,
+                                detail: 'Parameter',
+                                sortText: '0',
+                            };
+                        });
                 }
             }
         }

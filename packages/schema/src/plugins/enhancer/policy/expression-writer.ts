@@ -1,6 +1,7 @@
 import {
     BinaryExpr,
     BooleanLiteral,
+    CollectionPredicateExpr,
     DataModel,
     DataModelField,
     Expression,
@@ -11,6 +12,7 @@ import {
     isMemberAccessExpr,
     isReferenceExpr,
     isThisExpr,
+    Lambda,
     LiteralExpr,
     MemberAccessExpr,
     NumberLiteral,
@@ -95,6 +97,10 @@ export class ExpressionWriter {
 
             case BinaryExpr:
                 this.writeBinary(expr as BinaryExpr);
+                break;
+
+            case CollectionPredicateExpr:
+                this.writeCollectionPredicate(expr as CollectionPredicateExpr, expr.operator);
                 break;
 
             case ReferenceExpr:
@@ -203,12 +209,6 @@ export class ExpressionWriter {
             case 'in':
                 this.writeIn(expr);
                 break;
-
-            case '?':
-            case '!':
-            case '^':
-                this.writeCollectionPredicate(expr, expr.operator);
-                break;
         }
     }
 
@@ -260,25 +260,28 @@ export class ExpressionWriter {
         }
     }
 
-    private writeCollectionPredicate(expr: BinaryExpr, operator: string) {
+    private writeCollectionPredicate(expr: CollectionPredicateExpr, operator: string) {
+        const operand = expr.operand;
+        const condition = expr.condition;
+
         // check if the operand should be compiled to a relation query
         // or a plain expression
         const compileToRelationQuery =
             // expression rooted to `auth()` is always compiled to plain expression
-            !this.isAuthOrAuthMemberAccess(expr.left) &&
+            !this.isAuthOrAuthMemberAccess(operand) &&
             // `future()` in post-update context
-            ((this.isPostGuard && this.isFutureMemberAccess(expr.left)) ||
+            ((this.isPostGuard && this.isFutureMemberAccess(operand)) ||
                 // non-`future()` in pre-update context
-                (!this.isPostGuard && !this.isFutureMemberAccess(expr.left)));
+                (!this.isPostGuard && !this.isFutureMemberAccess(operand)));
 
         if (compileToRelationQuery) {
             this.block(() => {
                 this.writeFieldCondition(
-                    expr.left,
+                    expr.operand,
                     () => {
                         // inner scope of collection expression is always compiled as non-post-guard
                         const innerWriter = new ExpressionWriter(this.writer, false);
-                        innerWriter.write(expr.right);
+                        innerWriter.writeLambda(condition);
                     },
                     operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
                 );
@@ -286,6 +289,14 @@ export class ExpressionWriter {
         } else {
             const plain = this.plainExprBuilder.transform(expr);
             this.writer.write(`${plain} ? ${TRUE} : ${FALSE}`);
+        }
+    }
+
+    private writeLambda(lambda: Lambda) {
+        if (!lambda.variable) {
+            // variable is optional
+            this.write(lambda.expression);
+            return;
         }
     }
 

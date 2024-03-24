@@ -48,7 +48,7 @@ export function isConfigExpr(item: unknown): item is ConfigExpr {
     return reflection.isInstance(item, ConfigExpr);
 }
 
-export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | NullExpr | ObjectExpr | ReferenceExpr | ThisExpr | UnaryExpr;
+export type Expression = ArrayExpr | BinaryExpr | CollectionPredicateExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | NullExpr | ObjectExpr | ReferenceExpr | ThisExpr | UnaryExpr;
 
 export const Expression = 'Expression';
 
@@ -105,7 +105,7 @@ export function isArgument(item: unknown): item is Argument {
 }
 
 export interface ArrayExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'ArrayExpr';
     items: Array<Expression>
 }
@@ -176,10 +176,10 @@ export function isAttributeParamType(item: unknown): item is AttributeParamType 
 }
 
 export interface BinaryExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'BinaryExpr';
     left: Expression
-    operator: '!' | '!=' | '&&' | '<' | '<=' | '==' | '>' | '>=' | '?' | '^' | 'in' | '||'
+    operator: '!=' | '&&' | '<' | '<=' | '==' | '>' | '>=' | 'in' | '||'
     right: Expression
 }
 
@@ -190,7 +190,7 @@ export function isBinaryExpr(item: unknown): item is BinaryExpr {
 }
 
 export interface BooleanLiteral extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'BooleanLiteral';
     value: Boolean
 }
@@ -201,8 +201,22 @@ export function isBooleanLiteral(item: unknown): item is BooleanLiteral {
     return reflection.isInstance(item, BooleanLiteral);
 }
 
+export interface CollectionPredicateExpr extends AstNode {
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $type: 'CollectionPredicateExpr';
+    condition: Lambda
+    operand: Expression
+    operator: '!' | '?' | '^'
+}
+
+export const CollectionPredicateExpr = 'CollectionPredicateExpr';
+
+export function isCollectionPredicateExpr(item: unknown): item is CollectionPredicateExpr {
+    return reflection.isInstance(item, CollectionPredicateExpr);
+}
+
 export interface ConfigArrayExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'ConfigArrayExpr';
     items: Array<ConfigInvocationExpr | LiteralExpr>
 }
@@ -453,7 +467,7 @@ export function isInternalAttribute(item: unknown): item is InternalAttribute {
 }
 
 export interface InvocationExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'InvocationExpr';
     args: Array<Argument>
     function: Reference<FunctionDecl>
@@ -465,8 +479,21 @@ export function isInvocationExpr(item: unknown): item is InvocationExpr {
     return reflection.isInstance(item, InvocationExpr);
 }
 
+export interface Lambda extends AstNode {
+    readonly $container: CollectionPredicateExpr;
+    readonly $type: 'Lambda';
+    expression: Expression
+    variable?: RegularID
+}
+
+export const Lambda = 'Lambda';
+
+export function isLambda(item: unknown): item is Lambda {
+    return reflection.isInstance(item, Lambda);
+}
+
 export interface MemberAccessExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'MemberAccessExpr';
     member: Reference<DataModelField>
     operand: Expression
@@ -503,7 +530,7 @@ export function isModelImport(item: unknown): item is ModelImport {
 }
 
 export interface NullExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'NullExpr';
     value: 'null'
 }
@@ -515,7 +542,7 @@ export function isNullExpr(item: unknown): item is NullExpr {
 }
 
 export interface NumberLiteral extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'NumberLiteral';
     value: string
 }
@@ -527,7 +554,7 @@ export function isNumberLiteral(item: unknown): item is NumberLiteral {
 }
 
 export interface ObjectExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'ObjectExpr';
     fields: Array<FieldInitializer>
 }
@@ -578,7 +605,7 @@ export function isReferenceArg(item: unknown): item is ReferenceArg {
 }
 
 export interface ReferenceExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'ReferenceExpr';
     args: Array<ReferenceArg>
     target: Reference<ReferenceTarget>
@@ -591,7 +618,7 @@ export function isReferenceExpr(item: unknown): item is ReferenceExpr {
 }
 
 export interface StringLiteral extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'StringLiteral';
     value: string
 }
@@ -603,7 +630,7 @@ export function isStringLiteral(item: unknown): item is StringLiteral {
 }
 
 export interface ThisExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'ThisExpr';
     value: 'this'
 }
@@ -615,7 +642,7 @@ export function isThisExpr(item: unknown): item is ThisExpr {
 }
 
 export interface UnaryExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | CollectionPredicateExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | Lambda | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'UnaryExpr';
     operand: Expression
     operator: '!'
@@ -649,6 +676,7 @@ export type ZModelAstType = {
     AttributeParamType: AttributeParamType
     BinaryExpr: BinaryExpr
     BooleanLiteral: BooleanLiteral
+    CollectionPredicateExpr: CollectionPredicateExpr
     ConfigArrayExpr: ConfigArrayExpr
     ConfigExpr: ConfigExpr
     ConfigField: ConfigField
@@ -670,6 +698,7 @@ export type ZModelAstType = {
     GeneratorDecl: GeneratorDecl
     InternalAttribute: InternalAttribute
     InvocationExpr: InvocationExpr
+    Lambda: Lambda
     LiteralExpr: LiteralExpr
     MemberAccessExpr: MemberAccessExpr
     Model: Model
@@ -692,13 +721,14 @@ export type ZModelAstType = {
 export class ZModelAstReflection extends AbstractAstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'ConfigArrayExpr', 'ConfigExpr', 'ConfigField', 'ConfigInvocationArg', 'ConfigInvocationExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'CollectionPredicateExpr', 'ConfigArrayExpr', 'ConfigExpr', 'ConfigField', 'ConfigInvocationArg', 'ConfigInvocationExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'InternalAttribute', 'InvocationExpr', 'Lambda', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
     }
 
     protected override computeIsSubtype(subtype: string, supertype: string): boolean {
         switch (subtype) {
             case ArrayExpr:
             case BinaryExpr:
+            case CollectionPredicateExpr:
             case MemberAccessExpr:
             case NullExpr:
             case ObjectExpr:

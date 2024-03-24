@@ -4,6 +4,7 @@ import {
     AttributeParam,
     BinaryExpr,
     BooleanLiteral,
+    CollectionPredicateExpr,
     DataModel,
     DataModelField,
     DataModelFieldType,
@@ -178,6 +179,10 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveBinary(node as BinaryExpr, document, extraScopes);
                 break;
 
+            case CollectionPredicateExpr:
+                this.resolveCollectionPredicate(node as CollectionPredicateExpr, document, extraScopes);
+                break;
+
             case ObjectExpr:
                 this.resolveObject(node as ObjectExpr, document, extraScopes);
                 break;
@@ -232,12 +237,6 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolve(node.left, document, extraScopes);
                 this.resolve(node.right, document, extraScopes);
                 this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
-                break;
-
-            case '?':
-            case '!':
-            case '^':
-                this.resolveCollectionPredicate(node, document, extraScopes);
                 break;
 
             default:
@@ -353,10 +352,14 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    private resolveCollectionPredicate(node: BinaryExpr, document: LangiumDocument, extraScopes: ScopeProvider[]) {
+    private resolveCollectionPredicate(
+        node: CollectionPredicateExpr,
+        document: LangiumDocument,
+        extraScopes: ScopeProvider[]
+    ) {
         this.resolveDefault(node, document, extraScopes);
 
-        const resolvedType = node.left.$resolvedType;
+        const resolvedType = node.operand.$resolvedType;
         if (resolvedType && isDataModel(resolvedType.decl) && resolvedType.array) {
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
         } else {

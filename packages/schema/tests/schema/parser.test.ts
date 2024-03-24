@@ -556,4 +556,21 @@ describe('Parsing Tests', () => {
         const doc = await loadModel(content, false);
         expect((doc.declarations[0] as DataModel).isView).toBeTruthy();
     });
+
+    it('collection predicate with lambda', async () => {
+        const content = `   
+            model User {
+                id String @id
+                posts Post[]
+                @@allow('read', posts?[p => p.published == true])
+            }
+
+            model Post {
+                id String @id
+                published Boolean
+            }
+                `;
+        const doc = await loadModel(content, false);
+        expect((doc.declarations[0] as DataModel).isView).toBeTruthy();
+    });
 });

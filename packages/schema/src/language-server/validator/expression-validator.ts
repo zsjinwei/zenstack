@@ -3,6 +3,7 @@ import {
     BinaryExpr,
     Expression,
     ExpressionType,
+    isBinaryExpr,
     isDataModel,
     isDataModelAttribute,
     isDataModelField,
@@ -17,6 +18,7 @@ import { ValidationAcceptor } from 'langium';
 import { findUpAst, getContainingDataModel, isCollectionPredicate } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { typeAssignable } from './utils';
+import { match } from 'ts-pattern';
 
 /**
  * Validates expressions.
@@ -46,11 +48,12 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         }
 
         // extra validations by expression type
-        switch (expr.$type) {
-            case 'BinaryExpr':
-                this.validateBinaryExpr(expr, accept);
-                break;
-        }
+
+        match(expr)
+            .when(isBinaryExpr, (binary) => this.validateBinaryExpr(binary, accept))
+            .otherwise(() => {
+                // noop
+            });
     }
 
     private validateBinaryExpr(expr: BinaryExpr, accept: ValidationAcceptor) {

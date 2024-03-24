@@ -108,26 +108,13 @@ UnaryExpr:
 
 CollectionPredicateExpr infers Expression:
     MemberAccessExpr (
-        {infer BinaryExpr.left=current}
+        {infer CollectionPredicateExpr.operand=current}
         operator=('?'|'!'|'^')
-        '[' right=Expression ']'
-    )*;
+        '[' condition=Lambda ']'
+    );
 
-// TODO: support arithmetics?
-//
-// MultDivExpr infers Expression:
-//     CollectionPredicateExpr (
-//         {infer BinaryExpr.left=current}
-//         operator=('*'|'/')
-//         right=CollectionPredicateExpr
-//     )*;
-
-// AddSubExpr infers Expression:
-//     MultDivExpr (
-//         {infer BinaryExpr.left=current}
-//         operator=('+'|'-')
-//         right=MultDivExpr
-//     )*;
+Lambda:
+    (variable=RegularID '=>')? expression=Expression;
 
 InExpr infers Expression:
     CollectionPredicateExpr (
