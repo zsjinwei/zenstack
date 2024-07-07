@@ -1,23 +1,31 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
-const DB_URL = '';
-const PULSE_API_KEY = '';
+const PULSE_TEST_DB_URL =
+    process.env.PULSE_TEST_DB_URL ||
+    'postgresql://postgres:QJrS0mhFby7dnqqJ@db.eiouztzdsjfultkdmonm.supabase.co:5432/postgres';
+const PULSE_TEST_API_KEY =
+    process.env.PULSE_TEST_API_KEY ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfa2V5IjoiMDI3NjYyOGItM2NjYi00MTViLTkzYzUtMTAwZTE5YjkxOGE3IiwidGVuYW50X2lkIjoiYjQwNjRiNWVmMDFkNzAzMWFiZjJkNTVkMzhkMzZiMzM2OWIzMWJlYzFiZThlZTc4Yjc1YWZlM2FjN2M3ZjZkYiIsImludGVybmFsX3NlY3JldCI6ImUwN2Y3MDVmLWEzODQtNGI5Ny1iZmIyLTMxNTY3NTEwMGNmOCJ9._R7tBtdL1PCRpIk00WJUqw9E12HvVxG6NUDnLI08wnc';
 
 // eslint-disable-next-line jest/no-disabled-tests
-describe.skip('With Policy: subscription test', () => {
+describe('With Policy: subscription test', () => {
     let origDir: string;
+    let prisma: any;
 
     beforeAll(async () => {
         origDir = path.resolve('.');
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         process.chdir(origDir);
+        if (prisma) {
+            await prisma.$disconnect();
+        }
     });
 
     it('subscribe auth check', async () => {
-        const { prisma, enhance } = await loadSchema(
+        const { prisma: _prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -32,10 +40,12 @@ describe.skip('With Policy: subscription test', () => {
         `,
             {
                 provider: 'postgresql',
-                dbUrl: DB_URL,
-                pulseApiKey: PULSE_API_KEY,
+                dbUrl: PULSE_TEST_DB_URL,
+                pulseApiKey: PULSE_TEST_API_KEY,
+                logPrismaQuery: true,
             }
         );
+        prisma = _prisma;
 
         await prisma.model.deleteMany();
 
@@ -74,7 +84,7 @@ describe.skip('With Policy: subscription test', () => {
     });
 
     it('subscribe model check', async () => {
-        const { prisma, enhance } = await loadSchema(
+        const { prisma: _prisma, enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -85,14 +95,22 @@ describe.skip('With Policy: subscription test', () => {
         `,
             {
                 provider: 'postgresql',
-                dbUrl: DB_URL,
-                pulseApiKey: PULSE_API_KEY,
+                dbUrl: PULSE_TEST_DB_URL,
+                pulseApiKey: PULSE_TEST_API_KEY,
+                logPrismaQuery: true,
             }
         );
+        prisma = _prisma;
 
         await prisma.model.deleteMany();
 
-        const rawSub = await prisma.model.subscribe();
+        const rawSub = await prisma.model.subscribe({
+            create: {
+                name: {
+                    contains: 'hello',
+                },
+            },
+        });
 
         const enhanced = enhance();
         console.log('Auth db subscribing');
@@ -128,7 +146,7 @@ describe.skip('With Policy: subscription test', () => {
     });
 
     it('subscribe partial', async () => {
-        const { prisma, enhance } = await loadSchema(
+        const { prisma: _prisma, enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -139,10 +157,11 @@ describe.skip('With Policy: subscription test', () => {
         `,
             {
                 provider: 'postgresql',
-                dbUrl: DB_URL,
-                pulseApiKey: PULSE_API_KEY,
+                dbUrl: PULSE_TEST_DB_URL,
+                pulseApiKey: PULSE_TEST_API_KEY,
             }
         );
+        prisma = _prisma;
 
         await prisma.model.deleteMany();
 
@@ -182,7 +201,7 @@ describe.skip('With Policy: subscription test', () => {
     });
 
     it('subscribe mixed model check', async () => {
-        const { prisma, enhance } = await loadSchema(
+        const { prisma: _prisma, enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -193,10 +212,11 @@ describe.skip('With Policy: subscription test', () => {
         `,
             {
                 provider: 'postgresql',
-                dbUrl: DB_URL,
-                pulseApiKey: PULSE_API_KEY,
+                dbUrl: PULSE_TEST_DB_URL,
+                pulseApiKey: PULSE_TEST_API_KEY,
             }
         );
+        prisma = _prisma;
 
         await prisma.model.deleteMany();
 

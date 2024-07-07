@@ -753,6 +753,9 @@ importers:
 
   packages/testtools:
     dependencies:
+      '@prisma/extension-pulse':
+        specifier: ^1.1.1
+        version: 1.1.1(@prisma/client@5.16.1(prisma@5.16.1))
       '@zenstackhq/language':
         specifier: workspace:*
         version: link:../language/dist
@@ -2556,6 +2559,12 @@ packages:
 
   '@prisma/engines@5.7.0':
     resolution: {integrity: sha512-TkOMgMm60n5YgEKPn9erIvFX2/QuWnl3GBo6yTRyZKk5O5KQertXiNnrYgSLy0SpsKmhovEPQb+D4l0SzyE7XA==}
+
+  '@prisma/extension-pulse@1.1.1':
+    resolution: {integrity: sha512-utcquzFm3yVr8yQtx1IcV6+ao7TUBFs1tsGeyQFJ1vPdvL2RpgbtuTQVwJRumG4EW+5ubab9M4dArTC1WYaD0Q==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@prisma/client': '>=4.16.1'
 
   '@prisma/fetch-engine@5.16.1':
     resolution: {integrity: sha512-oOkjaPU1lhcA/Rvr4GVfd1NLJBwExgNBE36Ueq7dr71kTMwy++a3U3oLd2ZwrV9dj9xoP6LjCcky799D9nEt4w==}
@@ -10690,6 +10699,14 @@ snapshots:
       '@prisma/engines-version': 5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9
       '@prisma/fetch-engine': 5.7.0
       '@prisma/get-platform': 5.7.0
+
+  '@prisma/extension-pulse@1.1.1(@prisma/client@5.16.1(prisma@5.16.1))':
+    dependencies:
+      '@prisma/client': 5.16.1(prisma@5.16.1)
+      ws: 8.17.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   '@prisma/fetch-engine@5.16.1':
     dependencies:

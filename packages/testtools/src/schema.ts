@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { withPulse } from '@prisma/extension-pulse';
 import type { Model } from '@zenstackhq/language/ast';
 import {
     DEFAULT_RUNTIME_LOAD_PATH,
@@ -237,7 +238,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     }
 
     if (opt.pushDb) {
-        run('npx prisma db push');
+        run('npx prisma db push --accept-data-loss');
     }
 
     if (opt.pulseApiKey) {
@@ -267,7 +268,6 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     const prismaModule = require(path.join(projectDir, 'node_modules/@prisma/client')).Prisma;
 
     if (opt.pulseApiKey) {
-        const withPulse = require(path.join(projectDir, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
         prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
     }
 

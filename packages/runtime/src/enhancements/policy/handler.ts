@@ -1568,7 +1568,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             // inject into subscribe conditions
 
             if (args.create) {
-                args.create.after = this.policyUtils.and(args.create.after, readGuard);
+                args.create = this.policyUtils.and(args.create, readGuard);
             }
 
             if (args.update) {
@@ -1576,7 +1576,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             }
 
             if (args.delete) {
-                args.delete.before = this.policyUtils.and(args.delete.before, readGuard);
+                args.delete = this.policyUtils.and(args.delete, readGuard);
             }
 
             if (this.shouldLogQuery) {

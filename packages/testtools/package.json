@@ -19,6 +19,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@prisma/extension-pulse": "^1.1.1",
     "@zenstackhq/language": "workspace:*",
     "@zenstackhq/runtime": "workspace:*",
     "@zenstackhq/sdk": "workspace:*",
