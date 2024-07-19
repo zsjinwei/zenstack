@@ -154,7 +154,10 @@ export class PrismaSchemaGenerator {
         if (options.format !== false) {
             try {
                 // run 'prisma format'
-                await execPackage(`prisma format --schema ${outFile}`, { stdio: 'ignore' });
+                await execPackage(`prisma format --schema ${outFile}`, {
+                    stdio: 'ignore',
+                    prefix: options.prismaCliPath,
+                });
             } catch {
                 warnings.push(`Failed to format Prisma schema file`);
             }
@@ -442,7 +445,10 @@ export class PrismaSchemaGenerator {
 
                         const addedRel = new PrismaFieldAttribute('@relation', [
                             // use field name as relation name for disambiguation
-                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', nameArg?.value || auxRelationField.name)),
+                            new PrismaAttributeArg(
+                                undefined,
+                                new AttributeArgValue('String', nameArg?.value || auxRelationField.name)
+                            ),
                             new PrismaAttributeArg('fields', fieldsArg),
                             new PrismaAttributeArg('references', referencesArg),
                         ]);

@@ -45,11 +45,11 @@ export async function generate(projectPath: string, options: Options) {
 
     await runPlugins(options);
 
-    if (options.versionCheck) {
-        // note that we can't run plugins and do version check concurrently because
-        // plugins are CPU-bound and can cause version check to false timeout
-        await checkNewVersion();
-    }
+    // if (options.versionCheck) {
+    //     // note that we can't run plugins and do version check concurrently because
+    //     // plugins are CPU-bound and can cause version check to false timeout
+    //     await checkNewVersion();
+    // }
 }
 
 async function runPlugins(options: Options) {

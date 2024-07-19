@@ -41,6 +41,7 @@ export type PluginRunnerOptions = {
     output?: string;
     defaultPlugins: boolean;
     compile: boolean;
+    prismaCliPath?: string;
 };
 
 /**
@@ -311,6 +312,8 @@ export class PluginRunner {
         project: Project
     ) {
         const title = description ?? `Running plugin ${colors.cyan(name)}`;
+        const start = new Date();
+
         const spinner = ora(title).start();
         try {
             const r = await telemetry.trackSpan<PluginResult | void>(
@@ -322,14 +325,25 @@ export class PluginRunner {
                     options,
                 },
                 async () => {
-                    return await run(runnerOptions.schema, { ...options, schemaPath: runnerOptions.schemaPath }, dmmf, {
-                        output: runnerOptions.output,
-                        compile: runnerOptions.compile,
-                        tsProject: project,
-                    });
+                    return await run(
+                        runnerOptions.schema,
+                        {
+                            ...options,
+                            schemaPath: runnerOptions.schemaPath,
+                            // prismaCliPath: runnerOptions.prismaCliPath,
+                        },
+                        dmmf,
+                        {
+                            output: runnerOptions.output,
+                            compile: runnerOptions.compile,
+                            tsProject: project,
+                        }
+                    );
                 }
             );
             spinner.succeed();
+
+            console.log(`Plugin ${name} completed in ${new Date().getTime() - start.getTime()}ms`);
 
             if (typeof r === 'object') {
                 return r;

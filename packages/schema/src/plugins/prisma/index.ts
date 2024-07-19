@@ -1,14 +1,14 @@
 import { PluginError, PluginFunction, getLiteral, resolvePath } from '@zenstackhq/sdk';
 import { GeneratorDecl, isGeneratorDecl } from '@zenstackhq/sdk/ast';
 import { getDMMF } from '@zenstackhq/sdk/prisma';
+import colors from 'colors';
 import fs from 'fs';
 import path from 'path';
 import stripColor from 'strip-color';
 import telemetry from '../../telemetry';
-import { execPackage } from '../../utils/exec-utils';
+import { execPackage, execPackageAsync } from '../../utils/exec-utils';
 import { findUp } from '../../utils/pkg-utils';
 import { PrismaSchemaGenerator } from './schema-generator';
-import colors from 'colors';
 
 export const name = 'Prisma';
 export const description = 'Generating Prisma schema';
@@ -23,23 +23,28 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
     let prismaClientPath = '@prisma/client';
 
     if (options.generateClient !== false) {
-        let generateCmd = `prisma generate --schema "${output}"`;
+        const start = Date.now();
+
+        let generateCmd = `prisma generate --schema ${output}`;
         if (typeof options.generateArgs === 'string') {
             generateCmd += ` ${options.generateArgs}`;
         }
         try {
             // run 'prisma generate'
-            await execPackage(generateCmd, { stdio: 'ignore' });
-        } catch {
+            await execPackageAsync(generateCmd, { stdio: 'ignore', prefix: options.prismaCliPath });
+        } catch (err) {
+            console.log(err);
             await trackPrismaSchemaError(output);
             try {
                 // run 'prisma generate' again with output to the console
-                await execPackage(generateCmd);
+                await execPackageAsync(generateCmd, { prefix: options.prismaCliPath });
             } catch {
                 // noop
             }
             throw new PluginError(name, `Failed to run "prisma generate"`);
         }
+
+        console.log(`prisma generate took ${Date.now() - start}ms`);
 
         // extract user-provided prisma client output path
         const generator = model.declarations.find(

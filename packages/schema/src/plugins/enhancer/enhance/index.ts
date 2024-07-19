@@ -238,7 +238,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 
         try {
             // run 'prisma generate'
-            await execPackage(generateCmd, { stdio: 'ignore' });
+            await execPackage(generateCmd, { stdio: 'ignore', prefix: this.options.prismaCliPath });
         } catch {
             await trackPrismaSchemaError(logicalPrismaFile);
             try {

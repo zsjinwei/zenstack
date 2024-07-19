@@ -16,6 +16,7 @@ import json from 'json5';
 import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
+import { PluginRunner } from 'zenstack/cli/plugin-runner';
 import prismaPlugin from 'zenstack/plugins/prisma';
 
 /** 
@@ -151,6 +152,45 @@ const defaultOptions: SchemaLoadOptions = {
 export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {
     const content = fs.readFileSync(schemaFile, { encoding: 'utf-8' });
     return loadSchema(content, options);
+}
+
+export async function loadSchemaNew(schema: string, _options?: SchemaLoadOptions) {
+    const projectDir = tmp.dirSync({ unsafeCleanup: true }).name;
+    console.log('Workdir:', projectDir);
+    process.chdir(projectDir);
+
+    fs.writeFileSync('package.json', JSON.stringify({ name: 'test', version: '1.0.0' }));
+    installPackage(path.join(__dirname, '../../runtime/dist'));
+    installPackage(path.join(__dirname, '../node_modules/prisma'));
+
+    const fullSchema = `
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./test.db'
+}
+
+generator js {
+    provider = 'prisma-client-js'
+    output = '../.prisma'
+}
+
+${schema}
+    `;
+
+    fs.writeFileSync('schema.zmodel', fullSchema);
+
+    const output = path.join(projectDir, '.zenstack');
+
+    const zmodel = await loadDocument('./schema.zmodel');
+    const pluginRunner = new PluginRunner();
+    await pluginRunner.run({
+        schema: zmodel,
+        schemaPath: './schema.zmodel',
+        compile: true,
+        defaultPlugins: true,
+        output,
+        // prismaCliPath: path.join(__dirname, '..'),
+    });
 }
 
 export async function loadSchema(schema: string, options?: SchemaLoadOptions) {

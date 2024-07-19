@@ -30,6 +30,8 @@ export type PluginOptions = {
      * PrismaClient import path, either relative to `schemaPath` or absolute
      */
     prismaClientPath?: string;
+
+    prismaCliPath?: string;
 } & PluginDeclaredOptions;
 
 /**
