@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import stripColor from 'strip-color';
 import telemetry from '../../telemetry';
-import { execPackage, execPackageAsync } from '../../utils/exec-utils';
+import { execPackageAsync } from '../../utils/exec-utils';
 import { findUp } from '../../utils/pkg-utils';
 import { PrismaSchemaGenerator } from './schema-generator';
 

@@ -31,7 +31,7 @@ export async function execAsync(
 
 export async function execPackageAsync(
     cmd: string,
-    options?: Omit<ExecSyncOptions, 'env'> & { env?: Record<string, string>; prefix?: string }
+    _options?: Omit<ExecSyncOptions, 'env'> & { env?: Record<string, string>; prefix?: string }
 ) {
     return new Promise((resolve, reject) => {
         const packageManager = process?.versions?.bun ? 'bunx' : 'npx';

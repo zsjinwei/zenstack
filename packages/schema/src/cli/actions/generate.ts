@@ -3,7 +3,6 @@ import colors from 'colors';
 import path from 'path';
 import { CliError } from '../cli-error';
 import {
-    checkNewVersion,
     checkRequiredPackage,
     getDefaultSchemaLocation,
     getZenStackPackages,
