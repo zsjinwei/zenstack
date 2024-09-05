@@ -58,6 +58,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             return;
         }
         generateModelHooks(target, version, project, outDir, dataModel, mapping, options);
+        generateModelApis(target, version, project, outDir, dataModel, mapping, options);
     });
 
     await saveProject(project);
@@ -148,6 +149,50 @@ function generateQueryHook(
             )}/${operation}\`, args, options, fetch);`,
         ]);
     }
+}
+
+function generateQueryApi(
+    target: TargetFramework,
+    version: TanStackVersion,
+    sf: SourceFile,
+    model: string,
+    operation: string,
+    returnArray: boolean,
+    optionalInput: boolean,
+    overrideReturnType?: string,
+    overrideInputType?: string,
+    overrideTypeParameters?: string[]
+) {
+    const capOperation = upperCaseFirst(operation);
+
+    const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
+    const inputType = makeQueryArgsType(target, argsType);
+
+    let defaultReturnType = `Prisma.${model}GetPayload<TArgs>`;
+    if (returnArray) {
+        defaultReturnType = `Array<${defaultReturnType}>`;
+    }
+
+    const returnType = overrideReturnType ?? defaultReturnType;
+
+    const func = sf.addFunction({
+        name: `${operation}${model}`,
+        typeParameters: overrideTypeParameters ?? [`TArgs extends ${argsType}`],
+        parameters: [
+            {
+                name: optionalInput ? 'args?' : 'args',
+                type: inputType,
+            },
+        ],
+        isExported: true,
+    });
+
+    func.addStatements([
+        makeGetContext(target),
+        `return apiModelQuery<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
+            model
+        )}/${operation}\`, args, fetch);`,
+    ]);
 }
 
 function generateMutationHook(
@@ -263,6 +308,47 @@ function generateMutationHook(
     func.addStatements('return mutation;');
 }
 
+function generateMutationApi(
+    target: TargetFramework,
+    sf: SourceFile,
+    model: string,
+    operation: string,
+    httpVerb: 'post' | 'put' | 'delete' | 'patch',
+    checkReadBack: boolean,
+    overrideReturnType?: string,
+    overrideTypeParameters?: string[]
+) {
+    const capOperation = upperCaseFirst(operation);
+
+    const argsType = `Prisma.${model}${capOperation}Args`;
+    const inputType = `Prisma.SelectSubset<TArgs, ${argsType}>`;
+    let returnType = overrideReturnType ?? `CheckSelect<TArgs, ${model}, Prisma.${model}GetPayload<TArgs>>`;
+    if (checkReadBack) {
+        returnType = `(${returnType} | undefined )`;
+    }
+    const nonGenericArgsType = `MaybeRefOrGetter<${inputType}> | ComputedRef<${inputType}>`;
+
+    const func = sf.addFunction({
+        name: `${operation}${model}`,
+        isExported: true,
+        typeParameters: overrideTypeParameters ?? [`TArgs extends ${argsType}`],
+        parameters: [
+            {
+                name: 'args',
+                type: nonGenericArgsType,
+            },
+        ],
+    });
+
+    // get endpoint from context
+    func.addStatements([
+        makeGetContext(target),
+        `return apiModelMutation<${returnType}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
+            model
+        )}/${operation}\`, args, fetch, ${checkReadBack});`,
+    ]);
+}
+
 function generateCheckHook(
     target: string,
     version: TanStackVersion,
@@ -319,6 +405,63 @@ function generateCheckHook(
     ]);
 }
 
+function generateCheckApi(
+    target: string,
+    version: TanStackVersion,
+    sf: SourceFile,
+    model: DataModel,
+    prismaImport: string
+) {
+    const mapFilterType = (type: DataModelFieldType) => {
+        return match(type.type)
+            .with(P.union('Int', 'BigInt'), () => 'number')
+            .with('String', () => 'string')
+            .with('Boolean', () => 'boolean')
+            .otherwise(() => undefined);
+    };
+
+    const filterFields: Array<{ name: string; type: string }> = [];
+    const enumsToImport = new Set<string>();
+
+    // collect filterable fields and enums to import
+    model.fields.forEach((f) => {
+        if (isEnum(f.type.reference?.ref)) {
+            enumsToImport.add(f.type.reference.$refText);
+            filterFields.push({ name: f.name, type: f.type.reference.$refText });
+        }
+
+        const mappedType = mapFilterType(f.type);
+        if (mappedType) {
+            filterFields.push({ name: f.name, type: mappedType });
+        }
+    });
+
+    if (enumsToImport.size > 0) {
+        // import enums
+        const declares = sf.getImportDeclaration((importDeclaration) => {
+            return importDeclaration.getText().includes(Array.from(enumsToImport).join(', '));
+        });
+        if (!declares) {
+            sf.addStatements(`import type { ${Array.from(enumsToImport).join(', ')} } from '${prismaImport}';`);
+        }
+    }
+
+    const whereType = `{ ${filterFields.map(({ name, type }) => `${name}?: ${type}`).join('; ')} }`;
+
+    const func = sf.addFunction({
+        name: `check${model.name}`,
+        isExported: true,
+        parameters: [{ name: 'args', type: `{ operation: PolicyCrudKind; where?: ${whereType}; }` }],
+    });
+
+    func.addStatements([
+        makeGetContext(target),
+        `return apiModelQuery<boolean>('${model.name}', \`\${endpoint}/${lowerCaseFirst(
+            model.name
+        )}/check\`, args, fetch);`,
+    ]);
+}
+
 function generateModelHooks(
     target: TargetFramework,
     version: TanStackVersion,
@@ -332,7 +475,7 @@ function generateModelHooks(
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
-    sf.addStatements('/* eslint-disable */');
+    // sf.addStatements('/* eslint-disable */');
 
     const prismaImport = getPrismaClientImportSpec(outDir, options);
     sf.addImportDeclaration({
@@ -459,7 +602,7 @@ function generateModelHooks(
     if (mapping.groupBy) {
         const useName = model.name;
 
-        const returnType = `{} extends InputErrors ? 
+        const returnType = `{} extends InputErrors ?
         Array<PickEnumerable<Prisma.${modelNameCap}GroupByOutputType, TArgs['by']> &
           {
             [P in ((keyof TArgs) & (keyof Prisma.${modelNameCap}GroupByOutputType))]: P extends '_count'
@@ -561,6 +704,210 @@ function generateModelHooks(
     }
 }
 
+function generateModelApis(
+    target: TargetFramework,
+    version: TanStackVersion,
+    project: Project,
+    outDir: string,
+    model: DataModel,
+    mapping: DMMF.ModelMapping,
+    options: PluginOptions
+) {
+    const modelNameCap = upperCaseFirst(model.name);
+    const fileName = paramCase(model.name);
+
+    const spath = path.join(outDir, `${fileName}.ts`);
+    const prismaImport = getPrismaClientImportSpec(outDir, options);
+    let sf = project.getSourceFile(spath);
+    if (!sf) {
+        sf = project.createSourceFile(spath, undefined, { overwrite: true });
+        // sf.addStatements('/* eslint-disable */');
+
+        sf.addImportDeclaration({
+            namedImports: ['Prisma', model.name],
+            isTypeOnly: true,
+            moduleSpecifier: prismaImport,
+        });
+        sf.addStatements(makeBaseImports(target, version));
+    }
+
+    // Note: delegate models don't support create and upsert operations
+
+    // create is somehow named "createOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!isDelegateModel(model) && (mapping.create || (mapping as any).createOne)) {
+        generateMutationApi(target, sf, model.name, 'create', 'post', true);
+    }
+
+    // createMany
+    if (!isDelegateModel(model) && mapping.createMany && supportCreateMany(model.$container)) {
+        generateMutationApi(target, sf, model.name, 'createMany', 'post', false, 'Prisma.BatchPayload');
+    }
+
+    // findMany
+    if (mapping.findMany) {
+        // regular findMany
+        generateQueryApi(target, version, sf, model.name, 'findMany', true, true, undefined, undefined, undefined);
+    }
+
+    // findUnique
+    if (mapping.findUnique) {
+        generateQueryApi(target, version, sf, model.name, 'findUnique', false, false, undefined, undefined, undefined);
+    }
+
+    // findFirst
+    if (mapping.findFirst) {
+        generateQueryApi(target, version, sf, model.name, 'findFirst', false, true, undefined, undefined, undefined);
+    }
+
+    // update
+    // update is somehow named "updateOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping.update || (mapping as any).updateOne) {
+        generateMutationApi(target, sf, model.name, 'update', 'put', true);
+    }
+
+    // updateMany
+    if (mapping.updateMany) {
+        generateMutationApi(target, sf, model.name, 'updateMany', 'put', false, 'Prisma.BatchPayload');
+    }
+
+    // upsert
+    // upsert is somehow named "upsertOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!isDelegateModel(model) && (mapping.upsert || (mapping as any).upsertOne)) {
+        generateMutationApi(target, sf, model.name, 'upsert', 'post', true);
+    }
+
+    // del
+    // delete is somehow named "deleteOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping.delete || (mapping as any).deleteOne) {
+        generateMutationApi(target, sf, model.name, 'delete', 'delete', true);
+    }
+
+    // deleteMany
+    if (mapping.deleteMany) {
+        generateMutationApi(target, sf, model.name, 'deleteMany', 'delete', false, 'Prisma.BatchPayload');
+    }
+
+    // aggregate
+    if (mapping.aggregate) {
+        generateQueryApi(
+            target,
+            version,
+            sf,
+            modelNameCap,
+            'aggregate',
+            false,
+            false,
+            `Prisma.Get${modelNameCap}AggregateType<TArgs>`
+        );
+    }
+
+    // groupBy
+    if (mapping.groupBy) {
+        const useName = model.name;
+
+        const returnType = `{} extends InputErrors ?
+      Array<PickEnumerable<Prisma.${modelNameCap}GroupByOutputType, TArgs['by']> &
+        {
+          [P in ((keyof TArgs) & (keyof Prisma.${modelNameCap}GroupByOutputType))]: P extends '_count'
+            ? TArgs[P] extends boolean
+              ? number
+              : Prisma.GetScalarType<TArgs[P], Prisma.${modelNameCap}GroupByOutputType[P]>
+            : Prisma.GetScalarType<TArgs[P], Prisma.${modelNameCap}GroupByOutputType[P]>
+        }
+      > : InputErrors`;
+
+        const typeParameters = [
+            `TArgs extends Prisma.${useName}GroupByArgs`,
+            `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<TArgs>>, Prisma.Extends<'take', Prisma.Keys<TArgs>>>`,
+            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${useName}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${useName}GroupByArgs['orderBy'] },`,
+            `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<TArgs['orderBy']>>>`,
+            `ByFields extends Prisma.MaybeTupleToUnion<TArgs['by']>`,
+            `ByValid extends Prisma.Has<ByFields, OrderFields>`,
+            `HavingFields extends Prisma.GetHavingFields<TArgs['having']>`,
+            `HavingValid extends Prisma.Has<ByFields, HavingFields>`,
+            `ByEmpty extends TArgs['by'] extends never[] ? Prisma.True : Prisma.False`,
+            `InputErrors extends ByEmpty extends Prisma.True
+          ? \`Error: "by" must not be empty.\`
+          : HavingValid extends Prisma.False
+          ? {
+              [P in HavingFields]: P extends ByFields
+              ? never
+              : P extends string
+              ? \`Error: Field "\${P}" used in "having" needs to be provided in "by".\`
+              : [
+                  Error,
+                  'Field ',
+                  P,
+                  \` in "having" needs to be provided in "by"\`,
+                  ]
+          }[HavingFields]
+          : 'take' extends Prisma.Keys<TArgs>
+          ? 'orderBy' extends Prisma.Keys<TArgs>
+          ? ByValid extends Prisma.True
+              ? {}
+              : {
+                  [P in OrderFields]: P extends ByFields
+                  ? never
+                  : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+              }[OrderFields]
+          : 'Error: If you provide "take", you also need to provide "orderBy"'
+          : 'skip' extends Prisma.Keys<TArgs>
+          ? 'orderBy' extends Prisma.Keys<TArgs>
+          ? ByValid extends Prisma.True
+              ? {}
+              : {
+                  [P in OrderFields]: P extends ByFields
+                  ? never
+                  : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+              }[OrderFields]
+          : 'Error: If you provide "skip", you also need to provide "orderBy"'
+          : ByValid extends Prisma.True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+              ? never
+              : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+          }[OrderFields]`,
+        ];
+
+        generateQueryApi(
+            target,
+            version,
+            sf,
+            model.name,
+            'groupBy',
+            false,
+            false,
+            returnType,
+            `Prisma.SubsetIntersection<TArgs, Prisma.${useName}GroupByArgs, OrderByArg> & InputErrors`,
+            typeParameters
+        );
+    }
+
+    // somehow dmmf doesn't contain "count" operation, so we unconditionally add it here
+    {
+        generateQueryApi(
+            target,
+            version,
+            sf,
+            model.name,
+            'count',
+            false,
+            true,
+            `TArgs extends { select: any; } ? TArgs['select'] extends true ? number : Prisma.GetScalarType<TArgs['select'], Prisma.${modelNameCap}CountAggregateOutputType> : number`
+        );
+    }
+
+    {
+        // extra `check` hook for ZenStack's permission checker API
+        generateCheckApi(target, version, sf, model, prismaImport);
+    }
+}
+
 function generateIndex(
     project: Project,
     outDir: string,
@@ -602,8 +949,10 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
         `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
+        `import { apiModelQuery, apiModelMutation } from '${runtimeImportBase}/api';`,
         `import type { PickEnumerable, CheckSelect, QueryError, ExtraQueryOptions, ExtraMutationOptions } from '${runtimeImportBase}';`,
-        `import type { PolicyCrudKind } from '${RUNTIME_PACKAGE}'`,
+        `import type { PolicyCrudKind } from '${RUNTIME_PACKAGE}';`,
+        `import { getHooksContext } from '../context';`,
         `import metadata from './__model_meta';`,
         `type DefaultError = QueryError;`,
     ];
@@ -618,7 +967,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
                     : [];
             return [
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';`,
-                `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
+                // `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
                 ...suspense,
             ];
@@ -626,7 +975,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
         case 'vue': {
             return [
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
-                `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
+                // `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 `import type { MaybeRefOrGetter, ComputedRef, UnwrapRef } from 'vue';`,
                 ...shared,
             ];
@@ -638,7 +987,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
                 ...(version === 'v5'
                     ? [`import type { InfiniteData, StoreOrVal } from '@tanstack/svelte-query';`]
                     : []),
-                `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
+                // `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         }
@@ -721,5 +1070,5 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
 }
 
 function makeRuntimeImportBase(version: TanStackVersion) {
-    return `@zenstackhq/tanstack-query/runtime${version === 'v5' ? '-v5' : ''}`;
+    return `@zsjinwei/tanstack-query/runtime${version === 'v5' ? '-v5' : ''}`;
 }
