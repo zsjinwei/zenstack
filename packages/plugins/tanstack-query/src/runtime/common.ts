@@ -134,7 +134,8 @@ export async function fetcher<R, C extends boolean>(
     url: string,
     options?: RequestInit,
     fetch?: FetchFn,
-    checkReadBack?: C
+    checkReadBack?: C,
+    rawResult = false
 ): Promise<C extends true ? R | undefined : R> {
     const _fetch = fetch ?? crossFetch.fetch;
     const res = await _fetch(url, options);
@@ -157,7 +158,11 @@ export async function fetcher<R, C extends boolean>(
 
     const textResult = await res.text();
     try {
-        return unmarshal(textResult).data as R;
+        if (rawResult === true) {
+            return unmarshal(textResult) as R;
+        } else {
+            return unmarshal(textResult).data as R;
+        }
     } catch (err) {
         console.error(`Unable to deserialize data:`, textResult);
         throw err;

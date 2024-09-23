@@ -161,7 +161,10 @@ function generateQueryApi(
     optionalInput: boolean,
     overrideReturnType?: string,
     overrideInputType?: string,
-    overrideTypeParameters?: string[]
+    overrideTypeParameters?: string[],
+    overrideApiOperation?: string,
+    overrideFunctionName?: string,
+    fetchRawResult = false
 ) {
     const capOperation = upperCaseFirst(operation);
 
@@ -172,11 +175,14 @@ function generateQueryApi(
     if (returnArray) {
         defaultReturnType = `Array<${defaultReturnType}>`;
     }
-
+    if (fetchRawResult === true) {
+        defaultReturnType = `FindManyAndCountResult<${defaultReturnType}>`;
+    }
     const returnType = overrideReturnType ?? defaultReturnType;
 
+    const functionName = overrideFunctionName ?? `${operation}${model}`;
     const func = sf.addFunction({
-        name: `${operation}${model}`,
+        name: functionName,
         typeParameters: overrideTypeParameters ?? [`TArgs extends ${argsType}`],
         parameters: [
             {
@@ -187,11 +193,13 @@ function generateQueryApi(
         isExported: true,
     });
 
+    const apiOperation = overrideApiOperation ?? operation;
+
     func.addStatements([
         makeGetContext(target),
         `return apiModelQuery<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
-        )}/${operation}\`, args, fetch);`,
+        )}/${apiOperation}\`, args, fetch, ${fetchRawResult === true ? 'true' : 'false'});`,
     ]);
 }
 
@@ -316,7 +324,10 @@ function generateMutationApi(
     httpVerb: 'post' | 'put' | 'delete' | 'patch',
     checkReadBack: boolean,
     overrideReturnType?: string,
-    overrideTypeParameters?: string[]
+    overrideTypeParameters?: string[],
+    overrideApiOperation?: string,
+    overrideFunctionName?: string,
+    fetchRawResult?: boolean
 ) {
     const capOperation = upperCaseFirst(operation);
 
@@ -328,8 +339,9 @@ function generateMutationApi(
     }
     const nonGenericArgsType = `MaybeRefOrGetter<${inputType}> | ComputedRef<${inputType}>`;
 
+    const functionName = overrideFunctionName ?? `${operation}${model}`;
     const func = sf.addFunction({
-        name: `${operation}${model}`,
+        name: functionName,
         isExported: true,
         typeParameters: overrideTypeParameters ?? [`TArgs extends ${argsType}`],
         parameters: [
@@ -340,12 +352,14 @@ function generateMutationApi(
         ],
     });
 
+    const apiOperation = overrideApiOperation ?? operation;
+
     // get endpoint from context
     func.addStatements([
         makeGetContext(target),
         `return apiModelMutation<${returnType}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
             model
-        )}/${operation}\`, args, fetch, ${checkReadBack});`,
+        )}/${apiOperation}\`, args, fetch, ${checkReadBack}, ${fetchRawResult === true ? 'true' : 'false'});`,
     ]);
 }
 
@@ -742,6 +756,7 @@ function generateModelApis(
     // createMany
     if (!isDelegateModel(model) && mapping.createMany && supportCreateMany(model.$container)) {
         generateMutationApi(target, sf, model.name, 'createMany', 'post', false, 'Prisma.BatchPayload');
+        generateMutationApi(target, sf, model.name, 'createManyAndReturn', 'post', true);
     }
 
     // findMany
@@ -903,6 +918,25 @@ function generateModelApis(
     }
 
     {
+        // findMany with count
+        generateQueryApi(
+            target,
+            version,
+            sf,
+            model.name,
+            'findMany',
+            true,
+            true,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            `findManyAndCount${model.name}`,
+            true
+        );
+    }
+
+    {
         // extra `check` hook for ZenStack's permission checker API
         generateCheckApi(target, version, sf, model, prismaImport);
     }
@@ -955,6 +989,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
         `import { getHooksContext } from '../context';`,
         `import metadata from './__model_meta';`,
         `type DefaultError = QueryError;`,
+        `export type FindManyAndCountResult<T> = { data: T; total: number; skip?: number; take?: number; };`,
     ];
     switch (target) {
         case 'react': {
@@ -1070,5 +1105,5 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
 }
 
 function makeRuntimeImportBase(version: TanStackVersion) {
-    return `@zsjinwei/tanstack-query/runtime${version === 'v5' ? '-v5' : ''}`;
+    return `@zsjinwei/zenstack-tanstack-query/runtime${version === 'v5' ? '-v5' : ''}`;
 }

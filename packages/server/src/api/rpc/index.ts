@@ -58,6 +58,7 @@ class RequestHandler extends APIHandlerBase {
         switch (dbOp) {
             case 'create':
             case 'createMany':
+            case 'createManyAndReturn':
             case 'upsert':
                 if (method !== 'POST') {
                     return {
@@ -142,12 +143,22 @@ class RequestHandler extends APIHandlerBase {
             const result = await prisma[model][dbOp](parsedArgs);
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let response: any = { data: result };
+            const response: any = { data: result };
+
+            if (dbOp === 'findMany') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const total = await prisma[model].count({ where: (parsedArgs as any)?.where || {} });
+                response.total = total;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                response.skip = (parsedArgs as any)?.skip || 0;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                response.take = (parsedArgs as any)?.take || 0;
+            }
 
             // superjson serialize response
             if (result) {
                 const { json, meta } = SuperJSON.serialize(result);
-                response = { data: json };
+                response.data = json;
                 if (meta) {
                     response.meta = { serialization: meta };
                 }
