@@ -989,7 +989,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
         `import { getHooksContext } from '../context';`,
         `import metadata from './__model_meta';`,
         `type DefaultError = QueryError;`,
-        `export type FindManyAndCountResult<T> = { data: T; total: number; skip?: number; take?: number; };`,
+        `type FindManyAndCountResult<T> = { data: T; total: number; skip?: number; take?: number; };`,
     ];
     switch (target) {
         case 'react': {
