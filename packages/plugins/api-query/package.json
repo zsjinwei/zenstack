@@ -1,0 +1,63 @@
+{
+  "name": "@zsjinwei/api-query",
+  "displayName": "ZenStack plugin for generating api-query libs",
+  "version": "2.7.4",
+  "description": "ZenStack plugin for generating api-query libs",
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    },
+    "./package.json": {
+      "default": "./package.json"
+    },
+    "./runtime": {
+      "types": "./runtime/index.d.ts",
+      "import": "./runtime/index.mjs",
+      "require": "./runtime/index.js",
+      "default": "./runtime/index.js"
+    },
+    "./runtime/api": {
+      "types": "./runtime/api.d.ts",
+      "import": "./runtime/api.mjs",
+      "require": "./runtime/api.js",
+      "default": "./runtime/api.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zenstackhq/zenstack"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && tsup-node --config ./tsup.config.ts && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination ../../../../.build",
+    "watch": "concurrently \"tsc --watch\" \"tsup-node --config ./tsup.config.ts --watch\"",
+    "lint": "eslint src --ext ts",
+    "test": "jest",
+    "prepublishOnly": "pnpm build"
+  },
+  "publishConfig": {
+    "directory": "dist",
+    "linkDirectory": true
+  },
+  "keywords": [],
+  "author": "HuangJinwei <zsjinwei@foxmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@zenstackhq/runtime": "workspace:*",
+    "@zenstackhq/sdk": "workspace:*",
+    "axios": "^1.7.7",
+    "change-case": "^4.1.2",
+    "lower-case-first": "^2.0.2",
+    "semver": "^7.5.2",
+    "ts-morph": "^16.0.0",
+    "ts-pattern": "^4.3.0",
+    "upper-case-first": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/tmp": "^0.2.3",
+    "nock": "^13.3.6",
+    "replace-in-file": "^7.0.1",
+    "tmp": "^0.2.3"
+  }
+}
