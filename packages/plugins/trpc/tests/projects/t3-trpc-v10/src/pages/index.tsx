@@ -3,11 +3,21 @@ import styles from './index.module.css';
 
 export default function Home() {
     const hello = api.greet.hello.useQuery({ text: 'from tRPC' });
-    const posts = api.post.findMany.useQuery({ where: { published: true }, include: { author: true } });
-    const postsTransformed = api.post.findMany.useQuery(
+    const posts = api.post.post.findMany.useQuery({ where: { published: true }, include: { author: true } });
+    const postsTransformed = api.post.post.findMany.useQuery(
         {},
         { select: (data) => data.map((p) => ({ id: p.id, title: p.name })) }
     );
+
+    const { mutateAsync: createPost } = api.post.post.create.useMutation();
+
+    const mutation = async () => {
+        const created = await createPost({
+            data: { name: 'New post', published: true, authorId: 1 },
+            include: { author: true },
+        });
+        console.log(created.author.email);
+    };
 
     return (
         <>
@@ -21,6 +31,8 @@ export default function Home() {
                 {postsTransformed.data?.map((post) => (
                     <p key={post.id}>{post.title}</p>
                 ))}
+
+                <button onClick={mutation}>Create post</button>
             </main>
         </>
     );

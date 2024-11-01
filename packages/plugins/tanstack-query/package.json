@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/tanstack-query",
     "displayName": "ZenStack plugin for generating tanstack-query hooks",
-    "version": "2.5.1",
+    "version": "2.7.4",
     "description": "ZenStack plugin for generating tanstack-query hooks",
     "main": "index.js",
     "exports": {
@@ -98,7 +98,7 @@
     },
     "devDependencies": {
         "@tanstack/react-query": "^4.29.7",
-        "@tanstack/react-query-v5": "npm:@tanstack/react-query@^5.0.0",
+        "@tanstack/react-query-v5": "npm:@tanstack/react-query@5.56.x",
         "@tanstack/svelte-query": "^4.29.7",
         "@tanstack/svelte-query-v5": "npm:@tanstack/svelte-query@^5.0.0",
         "@tanstack/vue-query": "^4.37.0",

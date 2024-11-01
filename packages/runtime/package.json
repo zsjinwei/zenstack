@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "2.5.1",
+    "version": "2.7.4",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -76,6 +76,10 @@
         "./models": {
             "types": "./models.d.ts"
         },
+        "./zod-utils": {
+            "types": "./zod-utils.d.ts",
+            "default": "./zod-utils.js"
+        },
         "./package.json": {
             "default": "./package.json"
         }
@@ -98,6 +102,7 @@
         "semver": "^7.5.2",
         "superjson": "^1.13.0",
         "tiny-invariant": "^1.3.1",
+        "traverse": "^0.6.10",
         "ts-pattern": "^4.3.0",
         "tslib": "^2.4.1",
         "upper-case-first": "^2.0.2",
@@ -106,7 +111,7 @@
         "zod-validation-error": "^1.5.0"
     },
     "peerDependencies": {
-        "@prisma/client": "5.0.0 - 5.19.x"
+        "@prisma/client": "5.0.0 - 5.21.x"
     },
     "author": {
         "name": "ZenStack Team"
@@ -118,6 +123,7 @@
         "@types/pluralize": "^0.0.29",
         "@types/safe-json-stringify": "^1.1.5",
         "@types/semver": "^7.3.13",
+        "@types/traverse": "^0.6.37",
         "@types/uuid": "^8.3.4"
     }
 }
