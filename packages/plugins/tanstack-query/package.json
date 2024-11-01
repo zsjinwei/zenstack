@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/tanstack-query",
     "displayName": "ZenStack plugin for generating tanstack-query hooks",
-    "version": "2.7.4",
+    "version": "2.0.0-alpha.3",
     "description": "ZenStack plugin for generating tanstack-query hooks",
     "main": "index.js",
     "exports": {
@@ -60,10 +60,10 @@
             "default": "./runtime-v5/svelte.js"
         },
         "./runtime-v5/api": {
-          "types": "./runtime-v5/api.d.ts",
-          "import": "./runtime-v5/api.mjs",
-          "require": "./runtime-v5/api.js",
-          "default": "./runtime-v5/api.js"
+            "types": "./runtime-v5/api.d.ts",
+            "import": "./runtime-v5/api.mjs",
+            "require": "./runtime-v5/api.js",
+            "default": "./runtime-v5/api.js"
         }
     },
     "repository": {
