@@ -69,7 +69,7 @@ export interface ApiContext {
     onLogout?: (reason?: string) => Promise<void>;
     onRefresh?: (authToken: AuthToken) => Promise<void>;
 
-    isLoginEndpoint?: (url: string) => boolean;
+    isAuthEndpoint?: (url: string) => boolean;
 
     request?: AxiosRequestFn;
 
